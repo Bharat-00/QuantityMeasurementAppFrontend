@@ -1,0 +1,58 @@
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="navbar-brand" routerLink="/dashboard">
+      <div class="brand-icon">
+        <mat-icon>straighten</mat-icon>
+      </div>
+      <span class="brand-name">QMeasure</span>
+    </div>
+
+    <div class="navbar-links desktop-only">
+      <a class="nav-link" routerLink="/dashboard" [class.active]="isActive('/dashboard')">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-link" routerLink="/history" [class.active]="isActive('/history')">
+        <mat-icon>history</mat-icon>
+        <span>History</span>
+      </a>
+    </div>
+
+    <div class="navbar-actions desktop-only">
+      <div class="user-pill" [matMenuTriggerFor]="userMenu">
+        <div class="avatar">{{ (username || 'U')[0].toUpperCase() }}</div>
+        <span class="username">{{ username || 'User' }}</span>
+        <mat-icon class="chevron">expand_more</mat-icon>
+      </div>
+      <mat-menu #userMenu="matMenu" xPosition="before">
+        <div class="menu-header">
+          <strong>{{ username }}</strong>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon color="warn">logout</mat-icon>
+          <span>Sign out</span>
+        </button>
+      </mat-menu>
+    </div>
+
+    <button class="mobile-menu-btn mobile-only" (click)="toggleMobileMenu()">
+      <mat-icon>{{ mobileMenuOpen ? 'close' : 'menu' }}</mat-icon>
+    </button>
+  </div>
+
+  <div class="mobile-menu mobile-only" [class.open]="mobileMenuOpen">
+    <a class="mobile-nav-link" routerLink="/dashboard" [class.active]="isActive('/dashboard')">
+      <mat-icon>dashboard</mat-icon>
+      <span>Dashboard</span>
+    </a>
+    <a class="mobile-nav-link" routerLink="/history" [class.active]="isActive('/history')">
+      <mat-icon>history</mat-icon>
+      <span>History</span>
+    </a>
+    <button class="mobile-logout" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Sign out</span>
+    </button>
+  </div>
+</nav>

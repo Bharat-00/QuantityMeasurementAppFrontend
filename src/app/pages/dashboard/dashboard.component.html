@@ -1,0 +1,272 @@
+<app-navbar></app-navbar>
+
+<div class="dashboard-page">
+  <!-- Hero Header -->
+  <div class="page-header">
+    <div class="header-inner">
+      <div class="header-text">
+        <p class="greeting">{{ getGreeting() }}, {{ username || 'there' }} 👋</p>
+        <h1>Quantity Measurement</h1>
+        <p class="subtitle">Select a measurement type to convert, compare, or calculate values</p>
+      </div>
+      <div class="header-stats">
+        <div class="stat-badge">
+          <mat-icon>swap_horiz</mat-icon>
+          <span>4 Types</span>
+        </div>
+        <div class="stat-badge">
+          <mat-icon>functions</mat-icon>
+          <span>3 Operations</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-content">
+    <!-- Measurement Type Cards -->
+    <section class="type-section">
+      <h2 class="section-title">Choose Measurement Type</h2>
+      <div class="type-grid">
+        <div
+          *ngFor="let card of measurementCards"
+          class="type-card"
+          [class.selected]="selectedType === card.type"
+          (click)="selectType(card.type)"
+          [style.--card-color]="card.color"
+        >
+          <div class="type-card-icon">
+            <mat-icon>{{ card.icon }}</mat-icon>
+          </div>
+          <div class="type-card-body">
+            <h3>{{ card.label }}</h3>
+            <p>{{ card.description }}</p>
+          </div>
+          <div class="selected-badge" *ngIf="selectedType === card.type">
+            <mat-icon>check_circle</mat-icon>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operations Panel -->
+    <section class="operations-section" *ngIf="selectedType">
+      <div class="operations-header">
+        <div class="selected-type-badge" [style.background]="getCardColor(selectedType)">
+          <mat-icon>{{ measurementCards | keyvalue | slice:0:1 }}</mat-icon>
+          {{ selectedType | titlecase }}
+        </div>
+        <span class="ops-subtitle">Choose an operation below</span>
+      </div>
+
+      <mat-tab-group [(selectedIndex)]="activeTab" class="ops-tabs" animationDuration="200ms">
+
+        <!-- CONVERT TAB -->
+        <mat-tab label="Convert">
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">swap_horiz</mat-icon>
+            Convert
+          </ng-template>
+          <div class="tab-content">
+            <form [formGroup]="convertForm" (ngSubmit)="onConvert()">
+              <div class="form-row three-col">
+                <div class="form-field">
+                  <label>Value</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="value" type="number" placeholder="Enter value" />
+                    <mat-error *ngIf="convertForm.get('value')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="form-field">
+                  <label>From Unit</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="fromUnit" placeholder="Select unit">
+                      <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="convertForm.get('fromUnit')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="arrow-col">
+                  <mat-icon class="arrow-icon">east</mat-icon>
+                </div>
+                <div class="form-field">
+                  <label>To Unit</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="toUnit" placeholder="Select unit">
+                      <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="convertForm.get('toUnit')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <button type="submit" class="action-btn" [disabled]="loading.convert">
+                <mat-spinner *ngIf="loading.convert" diameter="16"></mat-spinner>
+                <mat-icon *ngIf="!loading.convert">swap_horiz</mat-icon>
+                {{ loading.convert ? 'Converting...' : 'Convert' }}
+              </button>
+            </form>
+
+            <div class="result-card" *ngIf="convertResult" [@fadeIn]>
+              <div class="result-label">Result</div>
+              <div class="result-main">
+                <span class="result-from">{{ formatNumber(convertResult.fromValue) }} <em>{{ getUnitLabel(convertResult.fromUnit) }}</em></span>
+                <mat-icon class="result-arrow">east</mat-icon>
+                <span class="result-to">{{ formatNumber(convertResult.result) }} <em>{{ getUnitLabel(convertResult.toUnit) }}</em></span>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- COMPARE TAB -->
+        <mat-tab label="Compare">
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">compare_arrows</mat-icon>
+            Compare
+          </ng-template>
+          <div class="tab-content">
+            <form [formGroup]="compareForm" (ngSubmit)="onCompare()">
+              <div class="compare-grid">
+                <div class="compare-side">
+                  <h4 class="side-label">First Quantity</h4>
+                  <div class="form-field">
+                    <label>Value</label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <input matInput formControlName="firstValue" type="number" placeholder="Enter value" />
+                      <mat-error *ngIf="compareForm.get('firstValue')?.hasError('required')">Required</mat-error>
+                    </mat-form-field>
+                  </div>
+                  <div class="form-field">
+                    <label>Unit</label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-select formControlName="firstUnit" placeholder="Select unit">
+                        <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                      </mat-select>
+                      <mat-error *ngIf="compareForm.get('firstUnit')?.hasError('required')">Required</mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+
+                <div class="vs-divider">
+                  <span>vs</span>
+                </div>
+
+                <div class="compare-side">
+                  <h4 class="side-label">Second Quantity</h4>
+                  <div class="form-field">
+                    <label>Value</label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <input matInput formControlName="secondValue" type="number" placeholder="Enter value" />
+                      <mat-error *ngIf="compareForm.get('secondValue')?.hasError('required')">Required</mat-error>
+                    </mat-form-field>
+                  </div>
+                  <div class="form-field">
+                    <label>Unit</label>
+                    <mat-form-field appearance="outline" class="full-width">
+                      <mat-select formControlName="secondUnit" placeholder="Select unit">
+                        <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                      </mat-select>
+                      <mat-error *ngIf="compareForm.get('secondUnit')?.hasError('required')">Required</mat-error>
+                    </mat-form-field>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="action-btn" [disabled]="loading.compare">
+                <mat-spinner *ngIf="loading.compare" diameter="16"></mat-spinner>
+                <mat-icon *ngIf="!loading.compare">compare_arrows</mat-icon>
+                {{ loading.compare ? 'Comparing...' : 'Compare' }}
+              </button>
+            </form>
+
+            <div class="result-card comparison-result" *ngIf="compareResult">
+              <div class="result-label">Comparison Result</div>
+              <div class="compare-result-text">
+                <mat-icon class="compare-icon">{{ compareResult.result?.includes('greater') || compareResult.result?.includes('>') ? 'trending_up' : compareResult.result?.includes('equal') || compareResult.result?.includes('=') ? 'drag_handle' : 'trending_down' }}</mat-icon>
+                <p>{{ compareResult.result || compareResult.comparison }}</p>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ARITHMETIC TAB -->
+        <mat-tab label="Arithmetic">
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">calculate</mat-icon>
+            Arithmetic
+          </ng-template>
+          <div class="tab-content">
+            <form [formGroup]="arithmeticForm" (ngSubmit)="onArithmetic()">
+              <div class="arithmetic-grid">
+                <div class="form-field">
+                  <label>First Value</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="firstValue" type="number" placeholder="Value" />
+                    <mat-error *ngIf="arithmeticForm.get('firstValue')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="form-field">
+                  <label>First Unit</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="firstUnit" placeholder="Unit">
+                      <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="arithmeticForm.get('firstUnit')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="form-field">
+                  <label>Operation</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="operation">
+                      <mat-option *ngFor="let op of operations" [value]="op.value">{{ op.label }}</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+                <div class="form-field">
+                  <label>Second Value</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <input matInput formControlName="secondValue" type="number" placeholder="Value" />
+                    <mat-error *ngIf="arithmeticForm.get('secondValue')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+                <div class="form-field">
+                  <label>Second Unit</label>
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-select formControlName="secondUnit" placeholder="Unit">
+                      <mat-option *ngFor="let u of units" [value]="u.value">{{ u.label }}</mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="arithmeticForm.get('secondUnit')?.hasError('required')">Required</mat-error>
+                  </mat-form-field>
+                </div>
+              </div>
+
+              <button type="submit" class="action-btn" [disabled]="loading.arithmetic">
+                <mat-spinner *ngIf="loading.arithmetic" diameter="16"></mat-spinner>
+                <mat-icon *ngIf="!loading.arithmetic">calculate</mat-icon>
+                {{ loading.arithmetic ? 'Calculating...' : 'Calculate' }}
+              </button>
+            </form>
+
+            <div class="result-card" *ngIf="arithmeticResult">
+              <div class="result-label">Result</div>
+              <div class="result-main">
+                <span class="result-to">
+                  {{ formatNumber(arithmeticResult.result) }}
+                  <em>{{ getUnitLabel(arithmeticResult.resultUnit) }}</em>
+                </span>
+              </div>
+            </div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </section>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="!selectedType">
+      <div class="empty-icon">
+        <mat-icon>straighten</mat-icon>
+      </div>
+      <h3>Select a measurement type above</h3>
+      <p>Pick from Length, Temperature, Volume, or Weight to get started.</p>
+    </div>
+  </div>
+</div>
